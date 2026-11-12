@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urljoin
 
 import httpx
 from bs4 import BeautifulSoup, NavigableString, Tag
@@ -92,6 +92,16 @@ async def read(url):
     try:
         async with httpx.AsyncClient(timeout=15,follow_redirects=False,headers={"User-Agent":"Mozilla/5.0 (compatible; WeChatArticleReader/1.0)","Accept":"text/html","Accept-Language":"zh-CN,zh;q=0.9"}) as client:
             r=await client.get(url)
+            if r.status_code in (301,302,303,307,308):
+                location=r.headers.get("location","")
+                next_url=urljoin(url,location) if location else ""
+                old=urlsplit(url); target=urlsplit(next_url) if next_url else None
+                safe=(target is not None and target.scheme=="https" and
+                      target.hostname=="mp.weixin.qq.com" and target.port in (None,443)
+                      and target.path==old.path and next_url!=url)
+                if safe:
+                    logging.getLogger("uvicorn.error").info("WECHAT_CANONICAL_REDIRECT follow_once=true")
+                    r=await client.get(next_url)
         if r.status_code in (301,302,303,307,308,403,429):
             redirect=r.headers.get("location","") if r.status_code in (301,302,303,307,308) else ""
             path=urlsplit(redirect).path if redirect else ""
