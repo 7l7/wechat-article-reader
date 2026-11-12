@@ -54,3 +54,10 @@ Remaining for public listing: verified publisher identity, policy approval, coun
 - Unfinished external release gates: verified publisher identity and consent, eligible project/organization, real video walkthrough URL demonstrating the exact plugin in ChatGPT, live portal import/connection and DNS domain verification, applicable portal scans, review case execution in the saved draft, published four-URL access checks, target country confirmation, and required owner legal attestations. None may be fabricated or auto-attested.
 - Authoritative submission guide: https://developers.openai.com/plugins/deploy/submission and errors: https://developers.openai.com/plugins/deploy/submission-errors .
 - No public Plugin Directory upload, review submission, approval, or publication has occurred.
+
+## Publisher selection — 2026-11-12
+
+- User explicitly selected **individual (personal) publisher**, not company/team. Preserve this scope for the public App Directory submission; do not substitute a corporate entity.
+- **Verified individual developer/display name is not yet supplied or confirmed.** Do not infer from an account identifier or email. No identity verification is claimed. Await the name the user will use on OpenAI's verified developer profile; the portal may source the selected verified name automatically.
+- The public candidate ZIP still has no `developerName` or `author.name` field; this is intentional until the verified individual publisher name is known. Final portal listing must be checked against the chosen individual identity.
+- No other release gates (country targeting, policy approval, recording, portal checks and attestations) may be marked complete solely by selecting 'personal'.
