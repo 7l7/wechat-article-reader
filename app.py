@@ -30,7 +30,12 @@ async def get_bounded(client: httpx.AsyncClient, url: str) -> httpx.Response:
             buf.extend(data)
             if len(buf)>MAX_HTML_BYTES:
                 raise ResponseTooLarge("HTML response too large")
-        return httpx.Response(incoming.status_code,headers=incoming.headers,
+        # aiter_bytes() already decodes Content-Encoding; remove stale encoding
+        # headers before constructing a new Response to avoid double-decompression.
+        headers=dict(incoming.headers)
+        headers.pop("content-encoding",None)
+        headers.pop("content-length",None)
+        return httpx.Response(incoming.status_code,headers=headers,
                               content=bytes(buf),request=incoming.request)
 
 _FETCH_SEMAPHORE = asyncio.Semaphore(3)
