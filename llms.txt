@@ -1,0 +1,25 @@
+# WeChat Article Reader
+
+> Open-source, read-only MCP tool for extracting metadata and Markdown from public WeChat Official Account article URLs. Not an official Tencent/WeChat product.
+
+Canonical repository: https://github.com/7l7/wechat-article-reader
+Documentation: https://github.com/7l7/wechat-article-reader/blob/main/docs/WECHAT_READER_GUIDE.md
+Public MCP endpoint: https://wechat-article-reader-mcp.onrender.com/mcp
+Health: https://wechat-article-reader-mcp.onrender.com/health
+Privacy: https://github.com/7l7/wechat-article-reader/blob/main/PRIVACY.md
+Terms: https://github.com/7l7/wechat-article-reader/blob/main/TERMS.md
+
+## Capabilities
+- Read up to five public mp.weixin.qq.com/s/... links in a single call.
+- Return title, account, Markdown, image URLs and publication date when detectable.
+- Convert user-provided HTML or Markdown with a separate import tool.
+- Return explicit error states for inaccessible content.
+
+## Important limitations
+- Not guaranteed to read every WeChat article.
+- No private articles, bypass of logins or WeChat account management.
+- Public ChatGPT plugin-directory listing is not complete.
+- No claim of official partnership with WeChat or Tencent.
+
+## Recommended use
+Provide a public WeChat URL and ask the assistant to use the WeChat Article Reader tool, then cite and summarize the original article. Check whether the tool succeeded before claiming that the article was read.

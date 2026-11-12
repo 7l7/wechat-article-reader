@@ -1,4 +1,8 @@
-# WeChat Article Reader
+# WeChat Article Reader — Read Public WeChat Articles in ChatGPT via MCP
+
+**Open-source WeChat Official Account article reader (微信公众号文章读取工具)** for AI assistants. Turn supported public `mp.weixin.qq.com/s/...` links into attributable Markdown, with the article title, publisher and image URLs. Useful for ChatGPT research, summarization and citation workflows; inaccessible pages return explicit errors rather than fabricated content. **Not an official WeChat/Tencent tool.**
+
+[Setup guide, examples and FAQ](docs/WECHAT_READER_GUIDE.md) · [中文使用指南](docs/zh-CN.md) · [AI-readable product facts](llms.txt) · [Report a public URL issue](https://github.com/7l7/wechat-article-reader/issues)
 
 A read-only MCP service that extracts metadata and Markdown from **publicly accessible** WeChat Official Account articles. Designed to let a ChatGPT plugin read and summarize articles from their original public URLs.
 
@@ -10,6 +14,14 @@ A read-only MCP service that extracts metadata and Markdown from **publicly acce
 - Clearly report inaccessible or restricted articles rather than fabricating content.
 
 The service cannot access private WeChat chats, login-protected articles, subscriptions, or account settings. It does not automate posting or payments.
+
+## Quick start
+
+In a ChatGPT client or MCP application that permits custom MCP servers, connect the endpoint below, then ask:
+
+> Use WeChat Article Reader to read https://mp.weixin.qq.com/s/Y-avtk21U7fDhJb0J-vbmg and summarize it with source attribution.
+
+This example article was successfully read by a connected ChatGPT tool on 2026-11-12. That does not guarantee access to every WeChat article.
 
 ## MCP connection
 
