@@ -221,8 +221,16 @@ async def verify_runtime():
         good_origin=await client.post("/mcp",headers={"Origin":"https://chatgpt.com","MCP-Protocol-Version":"2025-06-18","Accept":"application/json, text/event-stream"},json={"jsonrpc":"2.0","id":1,"method":"tools/list"})
         invalid_version=await client.post("/mcp",headers={"MCP-Protocol-Version":"invalid"},json={"jsonrpc":"2.0","id":1,"method":"ping"})
     assert bad_origin.status_code==403 and good_origin.status_code==200 and invalid_version.status_code==400
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url="http://internal") as client:
+        # Use a payload larger than the previous 20 KB cap, but not real user data.
+        large_import=await client.post("/mcp",json={"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"import_wechat_article","arguments":{"format":"markdown","content":"A"*30000}}})
+        oversized=await client.post("/mcp",data=b"x"*(MAX_REQUEST_BYTES+1),headers={"Content-Type":"application/json"})
+    assert large_import.status_code==200 and "user_supplied_markdown" in large_import.text
+    assert oversized.status_code==413
+    assert TOOL["annotations"]["destructiveHint"] is False
+    assert IMPORT_TOOL["annotations"]["destructiveHint"] is False
     assert discovery.json()["result"]["tools"][0]["name"]=="read_wechat_articles"
     assert "INVALID_URL" in call.json()["result"]["content"][0]["text"]
     assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
-    logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok")
+    logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok large_import=ok max_body=ok annotations=ok")
 
