@@ -110,7 +110,7 @@ async def read(url):
             return {"status":"error","source_url":url,"error_code":"ACCESS_RESTRICTED","message":"HTTP "+str(r.status_code),"redirect_path":path[:140]}
         if r.status_code!=200:
             return {"status":"error","source_url":url,"error_code":"HTTP_ERROR","message":"HTTP "+str(r.status_code)}
-        if len(r.content)>3000000 or "text/html" not in r.headers.get("content-type",""):
+        if len(r.content)>8000000 or "text/html" not in r.headers.get("content-type",""):
             logging.getLogger("uvicorn.error").warning("WECHAT_RESPONSE_DIAGNOSTIC status=%s content_type=%r bytes=%d",r.status_code,r.headers.get("content-type","")[:100],len(r.content))
             return {"status":"error","source_url":url,"error_code":"INVALID_RESPONSE","message":"Unexpected response"}
         if any(s in r.text for s in ("访问过于频繁","请输入验证码","环境异常","操作过于频繁")):
