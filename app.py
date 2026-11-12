@@ -7,6 +7,7 @@ import httpx
 from bs4 import BeautifulSoup, NavigableString, Tag
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
+import logging
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 TOOL = {"name":"read_wechat_articles","description":"Read up to five publicly accessible WeChat Official Account articles. Return verified title, account, Markdown, image URLs, and explicit errors if inaccessible.","inputSchema":{"type":"object","properties":{"urls":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":5}},"required":["urls"],"additionalProperties":False},"annotations":{"readOnlyHint":True,"openWorldHint":True,"destructiveHint":False}}
@@ -93,7 +94,9 @@ async def rpc(payload):
         urls=a.get("urls")
         if p.get("name")!=TOOL["name"] or not isinstance(urls,list) or not 1<=len(urls)<=5 or not all(isinstance(u,str) for u in urls):
             return {"jsonrpc":"2.0","id":rid,"error":{"code":-32602,"message":"Invalid arguments"}}
+        logging.getLogger("uvicorn.error").info("MCP_TOOL_CALL_START count=%d",len(urls))
         articles=await asyncio.gather(*(read(u) for u in urls))
+        logging.getLogger("uvicorn.error").info("MCP_TOOL_CALL_END outcomes=%s",",".join(x.get("error_code","ok") for x in articles))
         result={"content":[{"type":"text","text":json.dumps({"articles":articles},ensure_ascii=False)}],"isError":all(a["status"]=="error" for a in articles)}
     else:return {"jsonrpc":"2.0","id":rid,"error":{"code":-32601,"message":"Method not found"}}
     return {"jsonrpc":"2.0","id":rid,"result":result}
@@ -102,6 +105,14 @@ async def rpc(payload):
 async def health():return {"status":"ok","service":"wechat-article-reader","version":"0.4.0"}
 @app.post("/mcp")
 async def mcp(request:Request):
+    # Public MCP endpoint: disallow cross-origin browser invocations from
+    # arbitrary sites; server-to-server MCP calls normally omit Origin.
+    origin=request.headers.get("origin")
+    if origin and origin not in ("https://chatgpt.com","https://chat.openai.com"):
+        return JSONResponse({"error":"Origin not allowed"},status_code=403)
+    version=request.headers.get("mcp-protocol-version")
+    if version and version not in ("2025-03-26","2025-06-18","2025-11-25"):
+        return JSONResponse({"error":"Unsupported MCP protocol version"},status_code=400)
     if "application/json" not in request.headers.get("content-type",""):return JSONResponse({"error":"JSON required"},status_code=415)
     body=await request.body()
     if not 0<len(body)<=20000:return JSONResponse({"error":"Invalid request size"},status_code=413)
@@ -123,7 +134,12 @@ async def verify_runtime():
     fixture = '<h1 id="activity-name">Fixture title</h1><span id="js_name">Fixture account</span><div id="js_content"><p>' + ('Verified article body for deterministic parsing. '*4) + '</p></div>'
     parsed = parse(fixture,"https://mp.weixin.qq.com/s/fixture")
     assert health.status_code==200
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url="http://internal") as client:
+        bad_origin=await client.post("/mcp",headers={"Origin":"https://attacker.example"},json={"jsonrpc":"2.0","id":1,"method":"tools/list"})
+        good_origin=await client.post("/mcp",headers={"Origin":"https://chatgpt.com","MCP-Protocol-Version":"2025-06-18","Accept":"application/json, text/event-stream"},json={"jsonrpc":"2.0","id":1,"method":"tools/list"})
+        invalid_version=await client.post("/mcp",headers={"MCP-Protocol-Version":"invalid"},json={"jsonrpc":"2.0","id":1,"method":"ping"})
+    assert bad_origin.status_code==403 and good_origin.status_code==200 and invalid_version.status_code==400
     assert discovery.json()["result"]["tools"][0]["name"]=="read_wechat_articles"
     assert "INVALID_URL" in call.json()["result"]["content"][0]["text"]
     assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
-    logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok")
+    logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok")
