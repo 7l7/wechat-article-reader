@@ -95,6 +95,8 @@ async def read(url):
         if r.status_code in (301,302,303,307,308,403,429):
             redirect=r.headers.get("location","") if r.status_code in (301,302,303,307,308) else ""
             path=urlsplit(redirect).path if redirect else ""
+            host=urlsplit(redirect).hostname if redirect else ""
+            logging.getLogger("uvicorn.error").warning("WECHAT_REDIRECT_DIAGNOSTIC http=%s host=%r path=%r",r.status_code,host,path[:100])
             return {"status":"error","source_url":url,"error_code":"ACCESS_RESTRICTED","message":"HTTP "+str(r.status_code),"redirect_path":path[:140]}
         if r.status_code!=200:
             return {"status":"error","source_url":url,"error_code":"HTTP_ERROR","message":"HTTP "+str(r.status_code)}
