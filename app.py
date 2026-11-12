@@ -18,6 +18,21 @@ _REQUESTS = defaultdict(deque)
 RATE_WINDOW_SECONDS = 60
 RATE_LIMIT = 20
 MAX_REQUEST_BYTES = 200_000
+MAX_HTML_BYTES = 8_000_000
+
+class ResponseTooLarge(Exception):
+    pass
+
+async def get_bounded(client: httpx.AsyncClient, url: str) -> httpx.Response:
+    async with client.stream("GET",url) as incoming:
+        buf=bytearray()
+        async for data in incoming.aiter_bytes():
+            buf.extend(data)
+            if len(buf)>MAX_HTML_BYTES:
+                raise ResponseTooLarge("HTML response too large")
+        return httpx.Response(incoming.status_code,headers=incoming.headers,
+                              content=bytes(buf),request=incoming.request)
+
 _FETCH_SEMAPHORE = asyncio.Semaphore(3)
 
 def allow_request(client_ip: str) -> bool:
@@ -116,7 +131,7 @@ async def read(url):
 async def _read_network(url):
     try:
         async with httpx.AsyncClient(timeout=15,follow_redirects=False,headers={"User-Agent":"Mozilla/5.0 (compatible; WeChatArticleReader/1.0)","Accept":"text/html","Accept-Language":"zh-CN,zh;q=0.9"}) as client:
-            r=await client.get(url)
+            r=await get_bounded(client,url)
             if r.status_code in (301,302,303,307,308):
                 location=r.headers.get("location","")
                 next_url=urljoin(url,location) if location else ""
@@ -126,7 +141,7 @@ async def _read_network(url):
                       and target.path==old.path and next_url!=url)
                 if safe:
                     logging.getLogger("uvicorn.error").info("WECHAT_CANONICAL_REDIRECT follow_once=true")
-                    r=await client.get(next_url)
+                    r=await get_bounded(client,next_url)
         if r.status_code in (301,302,303,307,308,403,429):
             redirect=r.headers.get("location","") if r.status_code in (301,302,303,307,308) else ""
             path=urlsplit(redirect).path if redirect else ""
@@ -141,6 +156,8 @@ async def _read_network(url):
         if any(s in r.text for s in ("访问过于频繁","请输入验证码","环境异常","操作过于频繁")):
             return {"status":"error","source_url":url,"error_code":"ACCESS_RESTRICTED","message":"WeChat verification required"}
         return parse(r.text,url)
+    except ResponseTooLarge:
+        return {"status":"error","source_url":url,"error_code":"RESPONSE_TOO_LARGE","message":"Article HTML exceeds the 8 MB limit"}
     except (httpx.RequestError,TimeoutError):
         return {"status":"error","source_url":url,"error_code":"NETWORK_ERROR","message":"Network request failed"}
 
