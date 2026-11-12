@@ -11,6 +11,7 @@ import logging
 import time
 from collections import defaultdict, deque
 from article_extractor import extract as extract_wechat_html
+from url_normalizer import normalize_article_url
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 # Single-instance ephemeral abuse guard. Multi-instance deployment requires shared limits.
@@ -88,13 +89,7 @@ def import_article(args):
     return {"status":"ok","source_url":source,"title":title,"markdown":md[:75000],"truncated":len(md)>75000,"source_method":"user_supplied_"+kind}
 
 def valid(url):
-    if not isinstance(url, str) or len(url)>2048:
-        return False
-    try:
-        p=urlsplit(url)
-        return p.scheme=="https" and p.hostname=="mp.weixin.qq.com" and p.username is None and p.password is None and p.port in (None,443) and (p.path=="/s" or p.path.startswith("/s/"))
-    except ValueError:
-        return False
+    return normalize_article_url(url) is not None
 
 def markdown(root):
     parts=[]
@@ -129,9 +124,11 @@ def parse(html,url):
     return extract_wechat_html(html,url)
 
 async def read(url):
-    if not valid(url):return {"status":"error","source_url":str(url)[:200],"error_code":"INVALID_URL","message":"Only https://mp.weixin.qq.com/s/... links are accepted"}
+    canonical=normalize_article_url(url)
+    if canonical is None:
+        return {"status":"error","source_url":str(url)[:200],"error_code":"INVALID_URL","message":"Only public HTTPS mp.weixin.qq.com article links are accepted"}
     async with _FETCH_SEMAPHORE:
-        return await _read_network(url)
+        return await _read_network(canonical)
 
 async def _read_network(url):
     try:
