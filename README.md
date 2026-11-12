@@ -1,44 +1,46 @@
-# WeChat Article Reader
+# Article Lens — Public Article Reader
 
-A read-only MCP service that extracts metadata and Markdown from **publicly accessible** WeChat Official Account articles. Designed to let a ChatGPT plugin read and summarize articles from their original public URLs.
+**Article Lens** is an independent, read-only article extraction service for publicly accessible article links from supported sources. Currently it supports public WeChat Official Account article URLs and user-provided HTML or Markdown.
 
-## What it does
+> Independent third-party tool. Not affiliated with, sponsored by, or endorsed by Tencent or WeChat.
 
-- Fetch up to five publicly accessible `https://mp.weixin.qq.com/s/...` URLs per call.
-- Extract the article title, account name, date when present, Markdown text, and image URLs.
-- Convert HTML/Markdown that the user explicitly supplies.
-- Clearly report inaccessible or restricted articles rather than fabricating content.
+## Supported workflows
+- Read up to five public article URLs per request.
+- Extract original title, account, publication date if present, Markdown text, and image links.
+- Import user-supplied HTML and Markdown without requesting a remote article.
+- Return explicit errors for inaccessible, invalid, deleted, or restricted pages. The tool does not bypass source restrictions.
 
-The service cannot access private WeChat chats, login-protected articles, subscriptions, or account settings. It does not automate posting or payments.
+The service does not log into messaging accounts, access private chats, publish content, purchase anything, or guarantee that every article remains retrievable. Respect source copyright and terms.
 
-## MCP connection
+## Connection
 
-**Endpoint:** `https://wechat-article-reader-mcp.onrender.com/mcp`  
-**Health:** https://wechat-article-reader-mcp.onrender.com/health  
-**Transport:** Streamable HTTP / JSON-RPC  
-**Tools:** `read_wechat_articles`, `import_wechat_article`
+MCP endpoint: `https://wechat-article-reader-mcp.onrender.com/mcp`
 
-A public test article at `https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ` returned 3,141 Markdown characters, with an attributed title and publisher, during a Render service-side MCP tools/call test on 2026-11-12. Live availability can change; one successful read is not a guarantee of universal access or ChatGPT-client end-to-end compatibility.
+Health: `https://wechat-article-reader-mcp.onrender.com/health`
 
-## Privacy and terms
+Transport: HTTPS streamable HTTP JSON-RPC. Tools: `read_wechat_articles` and `import_wechat_article`.
 
-- [Privacy Policy](PRIVACY.md)
-- [Terms of Service](TERMS.md)
+The internal MCP tool and server identifiers retain their historical names to preserve backward compatibility. The public-facing name is **Article Lens**.
 
-The application does not intentionally persist article content or submitted URLs in a database; the hosting platform may retain standard operational logs. Article URLs are sent to WeChat to retrieve public pages. For details, see the policy.
+## Privacy, terms and support
 
-## Support
+- [Privacy policy](PRIVACY.md)
+- [Terms of service](TERMS.md)
+- [Support and bug reports](https://github.com/7l7/wechat-article-reader/issues)
 
-Open an issue at [GitHub Issues](https://github.com/7l7/wechat-article-reader/issues). Include the failure code and a public example URL if you have permission to share it. Do **not** post confidential data, account cookies, passwords or private articles.
+## Evidence
 
-## Developer notes
+- [Live integration evidence](E2E_EVIDENCE.md): six independently published public articles successfully parsed; remote HTTPS MCP initialization, discovery, and real article retrieval passed from an external test client.
+- Testing does not guarantee universal access, nor does a server test substitute for ChatGPT-hosted submission review.
 
-- Python / FastAPI / httpx / BeautifulSoup / markdownify
-- Code: `app.py`, `article_extractor.py`
-- Tests: `python -m pytest tests -q`
-- Deployment: Render Python web service, `uvicorn app:app --host 0.0.0.0 --port $PORT`
-- Abuse control: in-memory request limiter and bounded HTTP payload; review scaling limits before exposing to large public traffic.
+## Developer operations
 
-## Public listing
+Python / FastAPI / httpx / BeautifulSoup / markdownify.
 
-Plugin-directory submission is being prepared. Public approval and publication have **not** occurred. See [submission readiness](SUBMISSION_READINESS.md).
+Run tests using `pip install -r requirements-dev.txt && python -m pytest -q`.
+
+Deployment: Render Python web service using `uvicorn app:app --host 0.0.0.0 --port $PORT`. The production server includes bounded download sizes, request caps, and a single-process rate limiter.
+
+## Publication
+
+Public Plugin Directory submission is being prepared and has **not** been approved. See [readiness tracker](SUBMISSION_READINESS.md) and [demo instructions](REVIEW_DEMO_PLAN.md).
