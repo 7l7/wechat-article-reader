@@ -8,9 +8,30 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 import logging
+import time
+from collections import defaultdict, deque
 from article_extractor import extract as extract_wechat_html
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+# Single-instance ephemeral abuse guard. Multi-instance deployment requires shared limits.
+_REQUESTS = defaultdict(deque)
+RATE_WINDOW_SECONDS = 60
+RATE_LIMIT = 20
+MAX_REQUEST_BYTES = 200_000
+_FETCH_SEMAPHORE = asyncio.Semaphore(3)
+
+def allow_request(client_ip: str) -> bool:
+    now = time.monotonic()
+    if len(_REQUESTS) > 10000:
+        _REQUESTS.clear()
+    queue = _REQUESTS[client_ip]
+    while queue and queue[0] < now - RATE_WINDOW_SECONDS:
+        queue.popleft()
+    if len(queue) >= RATE_LIMIT:
+        return False
+    queue.append(now)
+    return True
+
 TOOL = {"name":"read_wechat_articles","description":"Read up to five publicly accessible WeChat Official Account articles. Return verified title, account, Markdown, image URLs, and explicit errors if inaccessible.","inputSchema":{"type":"object","properties":{"urls":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":5}},"required":["urls"],"additionalProperties":False},"annotations":{"readOnlyHint":True,"openWorldHint":True,"destructiveHint":False}}
 
 
@@ -89,6 +110,10 @@ def parse(html,url):
 
 async def read(url):
     if not valid(url):return {"status":"error","source_url":str(url)[:200],"error_code":"INVALID_URL","message":"Only https://mp.weixin.qq.com/s/... links are accepted"}
+    async with _FETCH_SEMAPHORE:
+        return await _read_network(url)
+
+async def _read_network(url):
     try:
         async with httpx.AsyncClient(timeout=15,follow_redirects=False,headers={"User-Agent":"Mozilla/5.0 (compatible; WeChatArticleReader/1.0)","Accept":"text/html","Accept-Language":"zh-CN,zh;q=0.9"}) as client:
             r=await client.get(url)
@@ -157,8 +182,20 @@ async def mcp(request:Request):
     if version and version not in ("2025-03-26","2025-06-18","2025-11-25"):
         return JSONResponse({"error":"Unsupported MCP protocol version"},status_code=400)
     if "application/json" not in request.headers.get("content-type",""):return JSONResponse({"error":"JSON required"},status_code=415)
-    body=await request.body()
-    if not 0<len(body)<=20000:return JSONResponse({"error":"Invalid request size"},status_code=413)
+    peer=request.client.host if request.client else "unknown"
+    if not allow_request(peer):
+        return JSONResponse({"error":"Rate limit exceeded"},status_code=429,headers={"Retry-After":"60"})
+    length_header=request.headers.get("content-length")
+    if length_header and length_header.isdigit() and int(length_header)>MAX_REQUEST_BYTES:
+        return JSONResponse({"error":"Request too large"},status_code=413)
+    chunks=[]; size=0
+    async for chunk in request.stream():
+        size+=len(chunk)
+        if size>MAX_REQUEST_BYTES:
+            return JSONResponse({"error":"Request too large"},status_code=413)
+        chunks.append(chunk)
+    body=b"".join(chunks)
+    if not body:return JSONResponse({"error":"Empty request"},status_code=400)
     try:data=json.loads(body)
     except ValueError:return JSONResponse({"error":"Invalid JSON"},status_code=400)
     resp=await rpc(data)
@@ -189,27 +226,3 @@ async def verify_runtime():
     assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
     logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok")
 
-# One-shot external smoke test on a separately published public sample article.
-# Does not use authentication, a browser, proxies, cookies, or restricted tabs.
-@app.on_event("startup")
-async def smoke_public_sample():
-    sample="https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ"
-    response=await rpc({"jsonrpc":"2.0","id":77,"method":"tools/call","params":{
-        "name":"read_wechat_articles","arguments":{"urls":[sample]}
-    }})
-    try:
-        article=json.loads(response["result"]["content"][0]["text"])["articles"][0]
-    except (KeyError,IndexError,ValueError,TypeError):
-        logging.getLogger("uvicorn.error").error("PUBLIC_MCP_SMOKE_FAIL invalid_tool_response")
-        return
-    logger=logging.getLogger("uvicorn.error")
-    good=(article.get("status")=="ok" and bool(article.get("title")) and
-          bool(article.get("account")) and len(article.get("markdown",""))>=500)
-    if good:
-        logger.info("PUBLIC_MCP_SMOKE_PASS title=%r account=%r body_length=%d",
-                    article["title"][:100],article["account"][:100],len(article["markdown"]))
-    else:
-        logger.warning("PUBLIC_MCP_SMOKE_FAIL status=%s code=%s title=%r account_present=%s body_length=%d",
-                       article.get("status"),article.get("error_code","unknown"),
-                       article.get("title","")[:100],bool(article.get("account")),
-                       len(article.get("markdown","")))
