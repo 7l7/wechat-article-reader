@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 import logging
+from article_extractor import extract as extract_wechat_html
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 TOOL = {"name":"read_wechat_articles","description":"Read up to five publicly accessible WeChat Official Account articles. Return verified title, account, Markdown, image URLs, and explicit errors if inaccessible.","inputSchema":{"type":"object","properties":{"urls":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":5}},"required":["urls"],"additionalProperties":False},"annotations":{"readOnlyHint":True,"openWorldHint":True,"destructiveHint":False}}
@@ -84,17 +85,7 @@ def markdown(root):
     return re.sub(r"\n{3,}","\n\n","".join(parts)).strip()
 
 def parse(html,url):
-    soup=BeautifulSoup(html,"html.parser")
-    content=soup.select_one("#js_content")
-    if content is None or len(content.get_text(" ",strip=True))<60:
-        return {"status":"error","source_url":url,"error_code":"CONTENT_NOT_FOUND","message":"No verified article body"}
-    title=soup.select_one("#activity-name")
-    meta=soup.select_one('meta[property="og:title"]')
-    name=soup.select_one("#js_name")
-    date=soup.select_one("#publish_time")
-    md=markdown(content)
-    imgs=list(dict.fromkeys((x.get("data-src") or x.get("src") or "") for x in content.select("img")))
-    return {"status":"ok","source_url":url,"title":title.get_text(" ",strip=True) if title else (meta.get("content","") if meta else ""),"account":name.get_text(" ",strip=True) if name else "","published_at":date.get_text(" ",strip=True) if date else "","markdown":md[:75000],"images":[i for i in imgs if i.startswith(("https://","http://"))][:100],"truncated":len(md)>75000}
+    return extract_wechat_html(html,url)
 
 async def read(url):
     if not valid(url):return {"status":"error","source_url":str(url)[:200],"error_code":"INVALID_URL","message":"Only https://mp.weixin.qq.com/s/... links are accepted"}
