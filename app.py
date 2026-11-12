@@ -93,7 +93,9 @@ async def read(url):
         async with httpx.AsyncClient(timeout=15,follow_redirects=False,headers={"User-Agent":"Mozilla/5.0 (compatible; WeChatArticleReader/1.0)","Accept":"text/html","Accept-Language":"zh-CN,zh;q=0.9"}) as client:
             r=await client.get(url)
         if r.status_code in (301,302,303,307,308,403,429):
-            return {"status":"error","source_url":url,"error_code":"ACCESS_RESTRICTED","message":"HTTP "+str(r.status_code)}
+            redirect=r.headers.get("location","") if r.status_code in (301,302,303,307,308) else ""
+            path=urlsplit(redirect).path if redirect else ""
+            return {"status":"error","source_url":url,"error_code":"ACCESS_RESTRICTED","message":"HTTP "+str(r.status_code),"redirect_path":path[:140]}
         if r.status_code!=200:
             return {"status":"error","source_url":url,"error_code":"HTTP_ERROR","message":"HTTP "+str(r.status_code)}
         if len(r.content)>3000000 or "text/html" not in r.headers.get("content-type",""):
@@ -188,3 +190,4 @@ async def smoke_public_sample():
     else:
         logger.warning("PUBLIC_ARTICLE_SMOKE_FAIL code=%s message=%s",
                        article.get("error_code","unknown"),article.get("message","")[:120])
+        logger.warning("PUBLIC_ARTICLE_REDIRECT_PATH path=%r",article.get("redirect_path",""))
