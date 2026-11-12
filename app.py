@@ -173,3 +173,18 @@ async def verify_runtime():
     assert "INVALID_URL" in call.json()["result"]["content"][0]["text"]
     assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
     logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok")
+
+# One-shot external smoke test on a separately published public sample article.
+# Does not use authentication, a browser, proxies, cookies, or restricted tabs.
+@app.on_event("startup")
+async def smoke_public_sample():
+    sample="https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ"
+    article=await read(sample)
+    logger=logging.getLogger("uvicorn.error")
+    if article.get("status")=="ok":
+        logger.info("PUBLIC_ARTICLE_SMOKE_PASS title=%r body_length=%d account_present=%s",
+                    article.get("title","")[:100],len(article.get("markdown","")),
+                    bool(article.get("account")))
+    else:
+        logger.warning("PUBLIC_ARTICLE_SMOKE_FAIL code=%s message=%s",
+                       article.get("error_code","unknown"),article.get("message","")[:120])
