@@ -257,23 +257,3 @@ async def verify_runtime():
 
 
 
-# Temporary validation only; remove before release after inspecting logs.
-@app.on_event("startup")
-async def smoke_multi_public_articles():
-    for sample in [
-        "https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ",
-        "https://mp.weixin.qq.com/s/j8q018Lck1TWHO3NxQDiJQ"
-    ]:
-        reply=await rpc({"jsonrpc":"2.0","id":77,"method":"tools/call","params":{"name":"read_wechat_articles","arguments":{"urls":[sample]}}})
-        try:
-            article=json.loads(reply["result"]["content"][0]["text"])["articles"][0]
-            good=(article.get("status")=="ok" and article.get("title") and article.get("account")
-                  and len(article.get("markdown",""))>=500)
-            if good:
-                logging.getLogger("uvicorn.error").info("MULTI_PUBLIC_SAMPLE_PASS id=%s title=%r account=%r length=%d",
-                    sample.rsplit("/",1)[-1],article["title"][:100],article["account"][:80],len(article["markdown"]))
-            else:
-                logging.getLogger("uvicorn.error").warning("MULTI_PUBLIC_SAMPLE_FAIL id=%s code=%s title=%r",
-                    sample.rsplit("/",1)[-1],article.get("error_code","UNKNOWN"),article.get("title","")[:80])
-        except Exception:
-            logging.getLogger("uvicorn.error").exception("MULTI_PUBLIC_SAMPLE_CRASH")
