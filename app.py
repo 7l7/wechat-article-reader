@@ -39,7 +39,7 @@ IMPORT_TOOL = {
  "name":"import_wechat_article",
  "description":"Convert article HTML or Markdown explicitly supplied by the user. Never use this tool to fetch blocked web pages.",
  "inputSchema":{"type":"object","properties":{"content":{"type":"string","minLength":1,"maxLength":150000},"format":{"type":"string","enum":["html","markdown"]},"source_url":{"type":"string"},"title":{"type":"string"}},"required":["content","format"],"additionalProperties":False},
- "annotations":{"readOnlyHint":True,"openWorldHint":False}
+ "annotations":{"readOnlyHint":True,"openWorldHint":False,"destructiveHint":False}
 }
 def import_article(args):
     content=args.get("content","")
