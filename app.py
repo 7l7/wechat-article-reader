@@ -258,25 +258,3 @@ async def verify_runtime():
 
 
 
-# Temporary independent post-startup smoke. No auth/cookies/proxies/blocked browser.
-async def _background_public_probe():
-    samples=[
-      "https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ",
-      "https://mp.weixin.qq.com/s/j8q018Lck1TWHO3NxQDiJQ"
-    ]
-    try:
-        reply=await rpc({"jsonrpc":"2.0","id":241,"method":"tools/call","params":{"name":"read_wechat_articles","arguments":{"urls":samples}}})
-        articles=json.loads(reply["result"]["content"][0]["text"])["articles"]
-        for article in articles:
-            ok=(article.get("status")=="ok" and len(article.get("markdown",""))>100
-                and bool(article.get("title")) and bool(article.get("account")))
-            logging.getLogger("uvicorn.error").info("PUBLIC_PROBE_RESULT success=%s url_key=%s code=%s title=%r account=%r chars=%d",
-                 ok,article.get("source_url","").split("/")[-1][:45],article.get("error_code","ok"),
-                 article.get("title","")[:90],article.get("account","")[:60],
-                 len(article.get("markdown","")))
-    except Exception as e:
-        logging.getLogger("uvicorn.error").warning("PUBLIC_PROBE_EXCEPTION exception_type=%s",type(e).__name__)
-
-@app.on_event("startup")
-async def schedule_public_probe():
-    asyncio.create_task(_background_public_probe())
