@@ -256,3 +256,18 @@ async def verify_runtime():
     assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
     logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok origin=ok protocol_headers=ok large_import=ok max_body=ok annotations=ok")
 
+
+# Release smoke verification; remove this test hook after obtaining actual evidence.
+@app.on_event("startup")
+async def public_release_canary():
+    sample="https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ"
+    result=await rpc({"jsonrpc":"2.0","id":100,"method":"tools/call","params":{"name":"read_wechat_articles","arguments":{"urls":[sample]}}})
+    try:
+        article=json.loads(result["result"]["content"][0]["text"])["articles"][0]
+        good=article.get("status")=="ok" and bool(article.get("title")) and bool(article.get("account")) and len(article.get("markdown",""))>=500
+        if good:
+            logging.getLogger("uvicorn.error").info("RELEASE_CANARY_PASS title=%r account=%r chars=%d",article.get("title","")[:100],article.get("account","")[:60],len(article.get("markdown","")))
+        else:
+            logging.getLogger("uvicorn.error").warning("RELEASE_CANARY_FAIL status=%s code=%s",article.get("status"),article.get("error_code"))
+    except Exception:
+        logging.getLogger("uvicorn.error").exception("RELEASE_CANARY_ERROR")
