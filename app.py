@@ -110,3 +110,20 @@ async def mcp(request:Request):
     resp=await rpc(data)
     if resp is None:return Response(status_code=202)
     return JSONResponse(resp,headers={"Cache-Control":"no-store"})
+
+# Runtime verification: exercises the deployed ASGI application, MCP discovery,
+# error-path tool execution, and parser without requesting external articles.
+@app.on_event("startup")
+async def verify_runtime():
+    import logging
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url="http://internal") as client:
+        health = await client.get("/health")
+        discovery = await client.post("/mcp",json={"jsonrpc":"2.0","id":1,"method":"tools/list"})
+        call = await client.post("/mcp",json={"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_wechat_articles","arguments":{"urls":["https://invalid.example/s/a"]}}})
+    fixture = '<h1 id="activity-name">Fixture title</h1><span id="js_name">Fixture account</span><div id="js_content"><p>' + ('Verified article body for deterministic parsing. '*4) + '</p></div>'
+    parsed = parse(fixture,"https://mp.weixin.qq.com/s/fixture")
+    assert health.status_code==200
+    assert discovery.json()["result"]["tools"][0]["name"]=="read_wechat_articles"
+    assert "INVALID_URL" in call.json()["result"]["content"][0]["text"]
+    assert parsed["status"]=="ok" and parsed["title"]=="Fixture title" and "Verified article body" in parsed["markdown"]
+    logging.getLogger("uvicorn.error").info("RUNTIME_SELFTEST_PASS health=200 tool_discovery=ok tool_call=ok parser=ok")
