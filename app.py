@@ -258,3 +258,28 @@ async def verify_runtime():
 
 
 
+
+# Temporary background-only diverse public article integration test.
+async def _sample_matrix_probe():
+    samples=[
+      "https://mp.weixin.qq.com/s/ZHLdNnASp-QMQ3MHmyUrKA",
+      "https://mp.weixin.qq.com/s/izVZNkk4kEjZGf_Tqmz8FQ",
+      "https://mp.weixin.qq.com/s/e6eY6v6TuMBL9WHzRhdGeg",
+      "https://mp.weixin.qq.com/s/nEJhdxGea-KLZA_IGw9R5A"
+    ]
+    for url in samples:
+        try:
+            a=await read(url)
+            logging.getLogger("uvicorn.error").info(
+                "MATRIX_PROBE_RESULT id=%s code=%s title=%r account=%r chars=%s",
+                url.rsplit("/",1)[-1],a.get("error_code","ok"),
+                a.get("title","")[:70],a.get("account","")[:55],
+                len(a.get("markdown","")))
+        except Exception as exc:
+            logging.getLogger("uvicorn.error").warning(
+                "MATRIX_PROBE_ERROR id=%s type=%s",url.rsplit("/",1)[-1],type(exc).__name__)
+        await asyncio.sleep(1)
+
+@app.on_event("startup")
+async def _run_matrix_probe():
+    asyncio.create_task(_sample_matrix_probe())
