@@ -33,3 +33,13 @@ Last updated: 2026-11-12
 - Temporary public test removed from startup; final source version v0.5.0 in commit `f27bf3e7`.
 
 Remaining for public listing: verified publisher identity, policy approval, country targeting and commerce confirmation, unauthenticated access check of all 4 published listing URLs, real ChatGPT demo recording and URL, full 5+3 case execution in the exact saved Portal version, Portal validation/scans/attestations, submission and approval. No public approval claimed.
+
+## Article Lens public candidate — 2026-11-12
+
+- Private package is already renamed to **Article Lens v0.6.1**; original plugin ID and MCP endpoint retained.
+- Public-review candidate refreshed to **Article Lens v0.6.1**. The ZIP has passed local structure checks: 512 × 512 icon, portable plugin.json, mcp.json, original server URL, five positive review cases and three negative review cases.
+- First review case tests real article; second tests two **different** articles in a single batch rather than a duplicated sample; the others test HTML import, Markdown import and URL pasted in prose. Negative cases test publish, private messages and purchases.
+- README, privacy policy, terms and demo plan have been rebranded to Article Lens and identify the plugin as independent of Tencent/WeChat.
+- Existing integration evidence: six public articles passed live MCP reads and remote HTTPS MCP initialize/list/call succeeded. These are not substitutes for the public Directory portal's saved-version case runs.
+- Four listing URLs are present in package metadata and corresponding repository files exist. External unauthenticated URL inspection via web fetch failed (cache misses); **access/content verification is not yet passed**.
+- Publisher legal identity, policy approval, selected countries, commerce confirmation, **real** ChatGPT demo recording, reviewer-facing hosted recording URL, portal submission and attestations remain unresolved. Do not treat candidate ZIP as submission-ready.
