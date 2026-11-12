@@ -1,9 +1,11 @@
-# WeChat Article Reader — Privacy Policy
+# Article Lens — Privacy Policy
 
 **Last updated:** 12 November 2026
 
+Article Lens is an independent third-party tool; it is not affiliated with Tencent or WeChat.
+
 ## Service
-WeChat Article Reader is a read-only article extraction tool. It receives URLs of publicly accessible WeChat Official Account articles and returns article metadata and text, or an explicit error. It also supports HTML or Markdown provided directly by the user.
+Article Lens is a read-only article extraction tool. It receives URLs of publicly accessible WeChat Official Account articles and returns article metadata and text, or an explicit error. It also supports HTML or Markdown provided directly by the user.
 
 ## Information processed
 - For URL reads, the service processes the submitted article URL and the page content retrieved from WeChat.
