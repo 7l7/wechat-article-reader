@@ -23,3 +23,13 @@ Last updated: 2026-11-12
 - Do not claim that all public articles or original specified URLs work.
 - Do not claim launch/review approval from private plugin creation.
 - Respect restricted page access and user content permissions.
+
+## 2026-11-12 public listing hardening
+
+- Package draft v0.5.0 created; icon 512×512, root portable MCP schema, 5 positive and 3 negative review cases.
+- Added public Privacy Policy and Terms draft, improved README/support, and review demo plan.
+- Added per-process rate limiting, 200 KB bounded JSON request streaming, 8 MB decompressed HTML streaming limit, concurrency cap 3, both tool annotations, and code regression fixtures.
+- **Latest actual real article test after stream/gzip fix passed** at 2026-11-12 07:25:41Z: `RELEASE_CANARY_PASS`, title `The Batch: 948 | GLM 5.1：面向长时任务的能力提升`, publisher `DeeplearningAI`, 3141 Markdown chars through MCP tool call. This is server-side evidence, not a ChatGPT host recording.
+- Temporary public test removed from startup; final source version v0.5.0 in commit `f27bf3e7`.
+
+Remaining for public listing: verified publisher identity, policy approval, country targeting and commerce confirmation, unauthenticated access check of all 4 published listing URLs, real ChatGPT demo recording and URL, full 5+3 case execution in the exact saved Portal version, Portal validation/scans/attestations, submission and approval. No public approval claimed.
