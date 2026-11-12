@@ -266,6 +266,7 @@ async def _external_client_probe():
     headers={"Accept":"application/json, text/event-stream",
              "MCP-Protocol-Version":"2025-06-18",
              "Origin":"https://chatgpt.com"}
+    await asyncio.sleep(12)
     try:
         async with httpx.AsyncClient(timeout=30,headers=headers) as client:
             a=await client.post(base,json={"jsonrpc":"2.0","id":1,"method":"initialize",
@@ -274,6 +275,9 @@ async def _external_client_probe():
             c=await client.post(base,json={"jsonrpc":"2.0","id":3,"method":"tools/call",
                 "params":{"name":"read_wechat_articles","arguments":{"urls":[
                    "https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ"]}}})
+        logging.getLogger("uvicorn.error").info("REMOTE_HTTPS_MCP_STATUS statuses=%s types=%s",
+            (a.status_code,b.status_code,c.status_code),
+            (a.headers.get("content-type","")[:60],b.headers.get("content-type","")[:60],c.headers.get("content-type","")[:60]))
         data=json.loads(c.json()["result"]["content"][0]["text"])["articles"][0]
         good=(a.status_code==200 and b.status_code==200 and c.status_code==200
               and data.get("status")=="ok" and len(data.get("markdown",""))>=500)
