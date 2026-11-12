@@ -12,6 +12,39 @@ import logging
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 TOOL = {"name":"read_wechat_articles","description":"Read up to five publicly accessible WeChat Official Account articles. Return verified title, account, Markdown, image URLs, and explicit errors if inaccessible.","inputSchema":{"type":"object","properties":{"urls":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":5}},"required":["urls"],"additionalProperties":False},"annotations":{"readOnlyHint":True,"openWorldHint":True,"destructiveHint":False}}
 
+
+IMPORT_TOOL = {
+ "name":"import_wechat_article",
+ "description":"Convert article HTML or Markdown explicitly supplied by the user. Never use this tool to fetch blocked web pages.",
+ "inputSchema":{"type":"object","properties":{"content":{"type":"string","minLength":1,"maxLength":150000},"format":{"type":"string","enum":["html","markdown"]},"source_url":{"type":"string"},"title":{"type":"string"}},"required":["content","format"],"additionalProperties":False},
+ "annotations":{"readOnlyHint":True,"openWorldHint":False}
+}
+def import_article(args):
+    content=args.get("content","")
+    kind=args.get("format")
+    if not isinstance(content,str) or not 1<=len(content)<=150000 or kind not in ("html","markdown"):
+        return {"status":"error","error_code":"INVALID_INPUT","message":"Expected user-supplied HTML or Markdown"}
+    source=args.get("source_url","")
+    if not isinstance(source,str):source=""
+    if kind=="html":
+        parsed=parse(content,source)
+        if parsed["status"]=="ok":
+            parsed["source_method"]="user_supplied_html"
+            return parsed
+        soup=BeautifulSoup(content,"html.parser")
+        for tag in soup(["script","style","noscript","iframe","svg"]):tag.decompose()
+        candidate=soup.select_one("article") or soup.select_one("main") or soup.body
+        if not candidate or len(candidate.get_text(" ",strip=True))<40:
+            return {"status":"error","error_code":"CONTENT_NOT_FOUND","message":"No substantial article in supplied HTML"}
+        md=markdown(candidate)
+        title=args.get("title","") or (soup.title.get_text(" ",strip=True) if soup.title else "")
+    else:
+        md=content
+        title=args.get("title","")
+    if len(md.strip())<40:
+        return {"status":"error","error_code":"CONTENT_TOO_SHORT","message":"Supplied content too short"}
+    return {"status":"ok","source_url":source,"title":title,"markdown":md[:75000],"truncated":len(md)>75000,"source_method":"user_supplied_"+kind}
+
 def valid(url):
     if not isinstance(url, str) or len(url)>2048:
         return False
@@ -88,9 +121,13 @@ async def rpc(payload):
     if method=="initialize":
         result={"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":False}},"serverInfo":{"name":"wechat-article-reader","version":"0.4.0"}}
     elif method=="ping":result={}
-    elif method=="tools/list":result={"tools":[TOOL]}
+    elif method=="tools/list":result={"tools":[TOOL,IMPORT_TOOL]}
     elif method=="tools/call":
         p=payload.get("params") or {}; a=p.get("arguments") or {}
+        if p.get("name")==IMPORT_TOOL["name"]:
+            item=import_article(a)
+            result={"content":[{"type":"text","text":json.dumps(item,ensure_ascii=False)}],"isError":item["status"]!="ok"}
+            return {"jsonrpc":"2.0","id":rid,"result":result}
         urls=a.get("urls")
         if p.get("name")!=TOOL["name"] or not isinstance(urls,list) or not 1<=len(urls)<=5 or not all(isinstance(u,str) for u in urls):
             return {"jsonrpc":"2.0","id":rid,"error":{"code":-32602,"message":"Invalid arguments"}}
@@ -133,6 +170,8 @@ async def verify_runtime():
         call = await client.post("/mcp",json={"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_wechat_articles","arguments":{"urls":["https://invalid.example/s/a"]}}})
     fixture = '<h1 id="activity-name">Fixture title</h1><span id="js_name">Fixture account</span><div id="js_content"><p>' + ('Verified article body for deterministic parsing. '*4) + '</p></div>'
     parsed = parse(fixture,"https://mp.weixin.qq.com/s/fixture")
+    imported=await rpc({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"import_wechat_article","arguments":{"format":"html","content":"<html><title>Example</title><body><article><p>"+("A genuine article supplied by its user. "*5)+"</p></article></body></html>"}}})
+    assert "user_supplied_html" in imported["result"]["content"][0]["text"]
     assert health.status_code==200
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url="http://internal") as client:
         bad_origin=await client.post("/mcp",headers={"Origin":"https://attacker.example"},json={"jsonrpc":"2.0","id":1,"method":"tools/list"})
