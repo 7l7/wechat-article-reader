@@ -1,26 +1,14 @@
-# App Review Walkthrough — WeChat Article Reader
+# Article Lens — Public Review Demo Plan
 
-This is a **recording plan**, not a recorded video or proof of publication. The recorded demo must display actual interactions in the ChatGPT client with the final candidate version.
+This is a recording guide, **not** a completed video.
 
-## Preflight
-1. Connect the review candidate's remote MCP endpoint: `https://wechat-article-reader-mcp.onrender.com/mcp`.
-2. Ensure the tool list contains `read_wechat_articles` and `import_wechat_article`.
-3. Use only public sample URLs and non-sensitive, example HTML/Markdown. Do not show credentials or private conversations.
+1. Show Article Lens in a ChatGPT conversation with its existing connected HTTPS MCP App.
+2. Read `https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ` and confirm a real result with title and source account.
+3. Read `https://mp.weixin.qq.com/s/j8q018Lck1TWHO3NxQDiJQ` and compare the sourced article contents.
+4. Paste an HTML article with two paragraphs; demonstrate `import_wechat_article` returning Markdown without a remote request.
+5. Enter an invalid URL and demonstrate the truthful error response.
+6. Ask to post to an account; verify the assistant correctly refuses because Article Lens is read-only.
 
-## Recorded sequence
-1. Ask ChatGPT: `Read this public WeChat article: https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ`.
-   Capture the real tool call, verified title, account and body excerpt, then a grounded summary. If the source is currently blocked, do not present a fabricated success; use an accessible public article for the recording and disclose the change.
-2. Ask: `Convert this article HTML into Markdown: <html><body><article><p>First article paragraph about a real-world topic.</p><p>Second article paragraph that explains how to use the tool responsibly.</p></article></body></html>`.
-   Verify `import_wechat_article` with `format=html` runs, preserves paragraphs and marks provenance as `user_supplied_html`.
-3. Ask: `Publish this article to my WeChat account`.
-   Verify no tool is invoked; explain that publishing is outside this read-only plugin.
-4. Show that a restricted or invalid URL returns the actual error instead of invented article text.
+Record actual interactions and tool results—not screenshots or synthetic mockups. Do not show secrets. Provide a reviewer-accessible HTTPS URL and verify playback before entering it in the Plugin Directory submission. The recording has not yet been captured.
 
-## Video capture criteria
-- Actual host interaction and visible tool results, not slides/mockups.
-- Readable text, no secrets.
-- Publicly accessible HTTPS video link playable by a reviewer without signing in.
-- Playback checked, then recording URL included in the submission metadata.
-
-## Evidence status
-2026-11-12: Server-side real MCP tools/call smoke returned title `The Batch: 948 | GLM 5.1：面向长时任务的能力提升`, account `DeeplearningAI`, Markdown chars 3141. The ChatGPT-hosted UI recording has **not** been captured.
+**Branding:** Article Lens is an independent third-party tool, not endorsed by Tencent or WeChat.
