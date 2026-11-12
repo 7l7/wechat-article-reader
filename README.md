@@ -1,5 +1,44 @@
-# WeChat Article Reader MCP
+# WeChat Article Reader
 
-Read publicly accessible WeChat Official Account articles through a read-only MCP tool. Returns verified Markdown or explicit access errors. No login bypass, cookies, or CAPTCHA circumvention.
+A read-only MCP service that extracts metadata and Markdown from **publicly accessible** WeChat Official Account articles. Designed to let a ChatGPT plugin read and summarize articles from their original public URLs.
 
-Endpoints: `GET /health`, `POST /mcp`. Deploy on Render as a Python web service.
+## What it does
+
+- Fetch up to five publicly accessible `https://mp.weixin.qq.com/s/...` URLs per call.
+- Extract the article title, account name, date when present, Markdown text, and image URLs.
+- Convert HTML/Markdown that the user explicitly supplies.
+- Clearly report inaccessible or restricted articles rather than fabricating content.
+
+The service cannot access private WeChat chats, login-protected articles, subscriptions, or account settings. It does not automate posting or payments.
+
+## MCP connection
+
+**Endpoint:** `https://wechat-article-reader-mcp.onrender.com/mcp`  
+**Health:** https://wechat-article-reader-mcp.onrender.com/health  
+**Transport:** Streamable HTTP / JSON-RPC  
+**Tools:** `read_wechat_articles`, `import_wechat_article`
+
+A public test article at `https://mp.weixin.qq.com/s/cexkyzQBRDG3uIF6g5cEbQ` returned 3,141 Markdown characters, with an attributed title and publisher, during a Render service-side MCP tools/call test on 2026-11-12. Live availability can change; one successful read is not a guarantee of universal access or ChatGPT-client end-to-end compatibility.
+
+## Privacy and terms
+
+- [Privacy Policy](PRIVACY.md)
+- [Terms of Service](TERMS.md)
+
+The application does not intentionally persist article content or submitted URLs in a database; the hosting platform may retain standard operational logs. Article URLs are sent to WeChat to retrieve public pages. For details, see the policy.
+
+## Support
+
+Open an issue at [GitHub Issues](https://github.com/7l7/wechat-article-reader/issues). Include the failure code and a public example URL if you have permission to share it. Do **not** post confidential data, account cookies, passwords or private articles.
+
+## Developer notes
+
+- Python / FastAPI / httpx / BeautifulSoup / markdownify
+- Code: `app.py`, `article_extractor.py`
+- Tests: `python -m pytest tests -q`
+- Deployment: Render Python web service, `uvicorn app:app --host 0.0.0.0 --port $PORT`
+- Abuse control: in-memory request limiter and bounded HTTP payload; review scaling limits before exposing to large public traffic.
+
+## Public listing
+
+Plugin-directory submission is being prepared. Public approval and publication have **not** occurred. See [submission readiness](SUBMISSION_READINESS.md).
