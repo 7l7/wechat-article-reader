@@ -68,3 +68,13 @@ Remaining for public listing: verified publisher identity, policy approval, coun
 - A separate public upload candidate has been rebuilt with `author.name: 枫` and `extensions.com.openai.interface.developerName: 枫`. Portable ZIP structure and review-case counts passed local validation.
 - This is a requested display name, **not evidence of completion of developer identity verification**. Confirm the selected verified personal identity and displayed developer name in the OpenAI submission portal; the portal may override package fields with its verified profile.
 - Do not modify the existing private plugin's ID or connection solely to change the public developer listing.
+
+## Final portal boundary check — 2026-11-13
+
+- Individual publisher and intended public developer name: **枫**, explicitly provided by owner; identity verification still not evidenced.
+- `article-lens-personal-feng-submission-candidate.zip` verified locally on 2026-11-13: ZIP CRC clean; files `README.md`, `assets/icon.png`, `mcp.json`, `plugin.json`, `skills/read-public-articles/SKILL.md`; `article-lens` 0.6.1; developer name/author `枫`; 512x512 PNG; 5 positive and 3 negative cases; public HTTPS MCP endpoint preserved. This remains a **local candidate**, not a portal draft.
+- Four GitHub listing resources exist via repository owner connector; independent unauthenticated browser fetch of their URLs yielded cache misses and was not verified.
+- Current available account actions cover creating/updating **private** plugins, not uploading/submitting to OpenAI's **public developer submission portal**. Browser authority to `chatgpt.com` was denied previously; do not use alternate surfaces to evade this denial. No portal draft or submission was created.
+- An actual ChatGPT-host screen recording and accessible recording URL are also absent. Do not generate a mock or treat script/screenshots as evidence.
+- Owner action required: operate the public developer portal under their verified personal identity, confirm country targeting, review and attest applicable legal/privacy/policy statements, and supply a genuine recording link. A separate eligible Work browser session may assist with permitted UI operations; this chat cannot impersonate those actions.
+- Release stage: **candidate ZIP prepared; NOT uploaded; NOT submitted; NOT approved; NOT published**.
