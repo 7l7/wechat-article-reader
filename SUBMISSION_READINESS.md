@@ -61,3 +61,10 @@ Remaining for public listing: verified publisher identity, policy approval, coun
 - **Verified individual developer/display name is not yet supplied or confirmed.** Do not infer from an account identifier or email. No identity verification is claimed. Await the name the user will use on OpenAI's verified developer profile; the portal may source the selected verified name automatically.
 - The public candidate ZIP still has no `developerName` or `author.name` field; this is intentional until the verified individual publisher name is known. Final portal listing must be checked against the chosen individual identity.
 - No other release gates (country targeting, policy approval, recording, portal checks and attestations) may be marked complete solely by selecting 'personal'.
+
+## Individual public developer name — 2026-11-13
+
+- Publisher has explicitly supplied the intended public developer name **枫**.
+- A separate public upload candidate has been rebuilt with `author.name: 枫` and `extensions.com.openai.interface.developerName: 枫`. Portable ZIP structure and review-case counts passed local validation.
+- This is a requested display name, **not evidence of completion of developer identity verification**. Confirm the selected verified personal identity and displayed developer name in the OpenAI submission portal; the portal may override package fields with its verified profile.
+- Do not modify the existing private plugin's ID or connection solely to change the public developer listing.
